@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace AutotraderScrape.Console.Models
+namespace App.Core.Models
 {
     public class Results
     {
@@ -9,7 +9,7 @@ namespace AutotraderScrape.Console.Models
         public List<string> Pages { get; set; } = new();
         public List<Car> Cars { get; set; } = new();
 
-        public IEnumerable<Car> SuccessfulCars => Cars.Where(c => c.Success);
+        public IEnumerable<Car> SuccessfulCars => Cars.Where(c => c.Success && !string.IsNullOrEmpty(c.Coords));
 
         public string JsCarsArray => $"const cars = [{SuccessfulCars.Select(car => car.JsObj).Aggregate((a, b) => $"{a},{b}")}]";
 
@@ -23,9 +23,10 @@ namespace AutotraderScrape.Console.Models
 
                     $"marker_{car.Id}.addListener('click', () => {{" +
                     "new google.maps.InfoWindow({" +
-                    $"content: getContentString(cars.filter(car => car.id === '{car.Id}'))," +
+                    //$"content: getContentString(cars.find(car => car.id === '{car.Id}'))," +
+                    $"content: getImgContentString(cars.find(car => car.id === '{car.Id}'))," +
                     "}).open({" +
-                    $"anchor: marker_{car.Id}, map, shouldFocus: false," +
+                    $"anchor: marker_{car.Id}, map, shouldFocus: false" +
                     "});" +
                     "});")
                 .Aggregate((a, b) => $"{a} {b}");

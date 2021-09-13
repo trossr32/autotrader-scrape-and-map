@@ -1,15 +1,18 @@
 ﻿using System;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using App.Core.Helpers;
+using App.Core.Models;
 using App.Core.Models.Configuration;
 using App.Core.Services.Configuration;
-using AutotraderScrape.Console.Models;
 using Flurl;
 using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
 using Newtonsoft.Json;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 namespace App.Services
 {
@@ -20,7 +23,7 @@ namespace App.Services
 
     public class ProcessService : IProcessService
     {
-        private readonly ILogger<ProcessService> _logger;
+        private static ILogger<ProcessService> _logger;
         private static FileSettings _fileSettings;
         private static SearchSettings _searchSettings;
 
@@ -28,6 +31,8 @@ namespace App.Services
 
         private static readonly Regex ResultCountRegex = new("(?<ResultCount>\\d+)");
         //private static readonly Regex NoLocationRegex = new Regex("(?<Location>\\.+)[\\d+] miles away");
+        private static readonly Regex PriceRegex = new("(?<Price>£\\d+,\\d+)");
+        //private static readonly Regex MileageRegex = new("(?<Mileage>\\d+,\\d+)");
 
         private static readonly string AssetsDir = Path.Combine(Environment.CurrentDirectory, "Assets");
         private static string _runDir;
@@ -56,38 +61,52 @@ namespace App.Services
             
             SetupRun();
 
-            var results = await Scrape();
+            try
+            {
+                Results results = await Scrape();
+                
+                await File.WriteAllTextAsync(Path.Combine(_runDir, "results.json"), JsonConvert.SerializeObject(results, Formatting.Indented));
 
-            Console.Write(JsonConvert.SerializeObject(results, Formatting.Indented, new JsonSerializerSettings { NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore }));
-
-            await BuildMapScript(results);
+                await BuildMapScript(results);
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError(e, "Scraping failed");
+            }
         }
         
         /// <summary>
         /// Scrape Autotrader for advert details
         /// </summary>
         /// <returns></returns>
-        private static async Task<Results> Scrape()
+        private async Task<Results> Scrape()
         {
             using var playwright = await Playwright.CreateAsync();
 
-            await using var browser = await playwright.Firefox.LaunchAsync(new BrowserTypeLaunchOptions { Headless = false, SlowMo = 50 });
+            await using var browser = await playwright.Firefox.LaunchAsync(new BrowserTypeLaunchOptions { });
             
             var page = await browser.NewPageAsync();
             
             await page.GotoAsync(_searchUrl);
 
-            var resultEls = await page.QuerySelectorAsync(".search-form__count");
+            IElementHandle resultEls = await page.QuerySelectorAsync(".search-form__count");
 
-            var pages = int.TryParse(ResultCountRegex.Match(await resultEls.InnerTextAsync()).Groups["ResultCount"].Value, out int resultsCount)
-                ? (int)Math.Ceiling((decimal)resultsCount / 10)
+            int resultsCount = 0;
+            int pages = resultEls != null
+                ? int.TryParse(ResultCountRegex.Match(await resultEls.InnerTextAsync()).Groups["ResultCount"].Value, out resultsCount)
+                    ? (int)Math.Ceiling((decimal)resultsCount / 10)
+                    : 1
                 : 1;
 
             var results = new Results {Expected = resultsCount};
+            
+            _logger?.LogInformation("Expecting {ResultsCount} results", resultsCount);
 
             // iterate pages of adverts
             for (var i = 1; i <= pages; i++)
             {
+                _logger?.LogInformation("Processing page {Page}", i);
+                
                 // if this isn't the first page then append the page number and navigate
                 if (i > 1)
                 {
@@ -107,19 +126,91 @@ namespace App.Services
                 foreach (var ad in ads)
                 {
                     // build a car object
-                    var car = new Car
-                    {
-                        Url = await ad.GetAttributeAsync("href")
-                    };
+                    var car = new Car(await ad.GetAttributeAsync("href"));
+                    
+                    _logger?.LogInformation("Processing ad {Url}", car.Url);
                     
                     // open the advert in a new browser page
-                    var adPage = await browser.NewPageAsync();
+                    IPage adPage = await browser.NewPageAsync();
 
                     await adPage.GotoAsync(car.Url.AsFullUrl(_searchSettings.Domain));
                     
-                    // todo - get price
-                    // todo - snapshot image
-                    // todo - get mileage
+                    // wait 1 second to try and improve image quality of snapshot
+                    Thread.Sleep(1000);
+                    
+                    // snapshot entire ad
+                    var adSelector = ":is(main > div > div:nth-child(2), main > article > div:nth-child(2))";
+                    
+                    if (await ElementExists(adSelector, adPage, "ad image", false))
+                    {
+                        IElementHandle image = await adPage.QuerySelectorAsync(adSelector);
+                        
+                        if (image == null)
+                            _logger.LogError("Failed to retrieve ad image after successfully finding the ad image element");
+                        else
+                        {
+                            car.AdImage = $"{car.Id}_ad.png";
+                            var fullSizePath = Path.Combine(_imageDir, $"{car.Id}_ad_full.png");
+                            
+                            await image.ScreenshotAsync(new ElementHandleScreenshotOptions { Path = fullSizePath });
+
+                            await using var input = File.OpenRead(fullSizePath);
+
+                            using var img = await Image.LoadAsync(input);
+                            
+                            img.Mutate(r => r.Resize(new ResizeOptions
+                            {
+                                Size = new Size(img.Width, img.Width),
+                                Mode = ResizeMode.Crop,
+                                Position = AnchorPositionMode.Top
+                            }));
+                            
+                            await img.SaveAsync(Path.Combine(_imageDir, car.AdImage));
+                        }
+                    }
+                    
+                    // snapshot image
+                    // var imgSelector = ":is(.gallery__container, section[data-gui='gallery-section'])";
+                    //
+                    // if (await ElementExists(imgSelector, adPage, "image", false))
+                    // {
+                    //     IElementHandle image = await page.QuerySelectorAsync(imgSelector);
+                    //     
+                    //     if (image == null)
+                    //         _logger.LogError("Failed to retrieve image after successfully finding the image element");
+                    //     else
+                    //     {
+                    //         car.Image = $"{car.Id}.png";
+                    //         
+                    //         await image.ScreenshotAsync(new ElementHandleScreenshotOptions { Path = Path.Combine(_imageDir, car.Image) });
+                    //     }
+                    // }
+                    
+                    // get price
+                    // var priceSelector = "text=/£\\d{2},\\d{3}/i";
+                    //
+                    // if (await ElementExists(priceSelector, adPage, "price", false))
+                    // {
+                    //     IElementHandle price = await adPage.QuerySelectorAsync(priceSelector);
+                    //     
+                    //     if (price == null)
+                    //         _logger.LogError("Failed to retrieve price after successfully finding the price element");
+                    //     else
+                    //         car.Price = PriceRegex.Match(await price.InnerHTMLAsync()).Groups["Price"].Value;
+                    // }
+                    
+                    // get mileage
+                    // var mileageSelector = "text=/\\d+,\\d+ miles/i";
+                    //
+                    // if (await ElementExists(mileageSelector, adPage, "mileage", false))
+                    // {
+                    //     IElementHandle mileage = await adPage.QuerySelectorAsync(mileageSelector);
+                    //     
+                    //     if (mileage == null)
+                    //         _logger.LogError("Failed to retrieve mileage after successfully finding the mileage element");
+                    //     else
+                    //         car.Mileage = await mileage.InnerTextAsync();
+                    // }
 
                     // try to find a location link
                     var locBtnSelector = ":is(button[data-gui-test='dealerLocationLink'], button.seller-location__toggle)";
@@ -142,25 +233,56 @@ namespace App.Services
                         continue;
                     }
                     
+                    Thread.Sleep(500);
+                    
                     var mapFrameQuery = await adPage.QuerySelectorAsync(mapFrameSelector);
+
+                    if (mapFrameQuery == null)
+                    {
+                        _logger.LogError("Failed to find the map iframe after successfully finding the map frame element");
+                    
+                        results.Cars.Add(car);
+
+                        await adPage.CloseAsync();
+
+                        continue;
+                    }
+                    
                     var mapFrame = await mapFrameQuery.ContentFrameAsync();
+
+                    if (mapFrame == null)
+                    {
+                        _logger.LogError("Failed to select the map iframe element after successfully finding the map iframe element");
+                    
+                        results.Cars.Add(car);
+
+                        await adPage.CloseAsync();
+
+                        continue;
+                    }
                     
                     var coordsSelector = "div.place-name";
 
                     if (await ElementExists(coordsSelector, mapFrame, "coordinates"))
                     {
-                        var coords = await mapFrame.QuerySelectorAsync(coordsSelector);
-
-                        car.Coords = await coords.InnerTextAsync();
+                        IElementHandle coords = await mapFrame.QuerySelectorAsync(coordsSelector);
+                        
+                        if (coords == null)
+                            _logger.LogError("Failed to retrieve coordinates after successfully finding the coordinates element");
+                        else
+                            car.Coords = await coords.InnerTextAsync();
                     }
                     
                     var addressSelector = "div.address";
 
                     if (await ElementExists(coordsSelector, mapFrame, "address"))
                     {
-                        var address = await mapFrame.QuerySelectorAsync(addressSelector);
+                        IElementHandle address = await mapFrame.QuerySelectorAsync(addressSelector);
 
-                        car.Location = await address.InnerTextAsync();
+                        if (address == null)
+                            _logger.LogError("Failed to retrieve address after successfully finding the address element");
+                        else
+                            car.Location = await address.InnerTextAsync();
                     }
 
                     car.Success = true;
@@ -177,7 +299,7 @@ namespace App.Services
         /// <summary>
         /// Set up the run directory
         /// </summary>
-        private static void SetupRun()
+        private void SetupRun()
         {
             if (!Directory.Exists(_fileSettings.RunsDirectory))
                 Directory.CreateDirectory(_fileSettings.RunsDirectory);
@@ -196,7 +318,7 @@ namespace App.Services
         /// Build Google map script
         /// </summary>
         /// <param name="results"></param>
-        private static async Task BuildMapScript(Results results) =>
+        private async Task BuildMapScript(Results results) =>
             await File.WriteAllTextAsync(_indexJsFile, (await File.ReadAllTextAsync(_indexJsFile))
                 .Replace("//CARS_ARRAY_PLACEHOLDER", results.JsCarsArray)
                 .Replace("//MARKERS_ARRAY_PLACEHOLDER", results.JsMarkers));
@@ -209,7 +331,7 @@ namespace App.Services
         /// <param name="selectorType"></param>
         /// <param name="closePage"></param>
         /// <returns></returns>
-        private static async Task<bool> ElementExists(string selector, IPage page, string selectorType, bool closePage = true)
+        private async Task<bool> ElementExists(string selector, IPage page, string selectorType, bool closePage = true)
         {
             try
             {
@@ -217,10 +339,11 @@ namespace App.Services
 
                 return true;
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // couldn't find a location
-                await Console.Error.WriteLineAsync($"Unable to find {selectorType} for advert at {page.Url.AsFullUrl(_searchSettings.Domain)}");
+                //await page.PauseAsync();
+                
+                _logger?.LogError(e, "Unable to find {SelectorType} for advert at {PageUrl}", selectorType, page.Url.AsFullUrl(_searchSettings.Domain));
 
                 if (closePage)
                     await page.CloseAsync();
@@ -236,7 +359,7 @@ namespace App.Services
         /// <param name="frame"></param>
         /// <param name="selectorType"></param>
         /// <returns></returns>
-        private static async Task<bool> ElementExists(string selector, IFrame frame, string selectorType)
+        private async Task<bool> ElementExists(string selector, IFrame frame, string selectorType)
         {
             try
             {
@@ -244,10 +367,9 @@ namespace App.Services
 
                 return true;
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // couldn't find a location
-                await Console.Error.WriteLineAsync($"Unable to find {selectorType} for advert at {frame.Url}");
+                _logger?.LogError(e, "Unable to find {SelectorType} for advert at {FrameUrl}", selectorType, frame.Url);
 
                 return false;
             }

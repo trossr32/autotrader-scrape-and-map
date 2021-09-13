@@ -1,0 +1,43 @@
+/* Always set the map height explicitly to define the size of the div element that contains the map. */
+#map {
+    height: 100%;
+}
+
+/* Optional: Makes the sample page fill the window. */
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.marker-img-container {
+    width: 600px;
+}
+
+.marker-img-container img {
+    width: 600px;
+}
+
+.marker-container {
+    width: 600px;
+}
+
+.marker-image {
+    float: left;
+    width: 300px;
+}
+
+.marker-image img {
+    width: 300px;
+}
+
+.marker-content {
+    float: right;
+    width: 280px;
+    margin-left: 20px;
+}
+
+.marker-content h3 {
+    margin-top: 0;
+}
