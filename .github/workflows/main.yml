@@ -37,6 +37,8 @@ jobs:
           Set-Location $projDir
           
           dotnet build --configuration Release
+
+          Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
             
           Set-Location $root
                     
