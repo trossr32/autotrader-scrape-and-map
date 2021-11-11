@@ -20,6 +20,15 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+      #- name: x
+      #  run: |
+      #    apt-get update \
+      #    && apt-get install wget -y \
+      #    && wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb \
+      #    && dpkg -i packages-microsoft-prod.deb \
+      #    && apt-get update \
+      #    && apt-get install -y powershell
+
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
       #- uses: actions/setup-dotnet@v1
@@ -29,25 +38,28 @@ jobs:
       
       - name: Doing the things
         run: |
+          #run.ps1
           #$root = Get-Location
 
           #$projDir = "App.Console"
           #$proj = "$projDir/App.Console.csproj"
           #$releaseDir = "$projDir/bin/Release/net5.0"
 
-          Set-Location 'App.Console'
+          #Set-Location 'App.Console'
 
           # install playwright
           dotnet tool install -g Microsoft.Playwright.CLI
           
           # install browsers
           playwright install
+
+
           
           # build
-          dotnet build --configuration Release
+          #dotnet build --configuration Release
 
-          #Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
+          Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
            
           # run
-          dotnet run -c Release
+          #dotnet run -c Release
         shell: pwsh
