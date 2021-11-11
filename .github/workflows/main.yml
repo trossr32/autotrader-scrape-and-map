@@ -16,6 +16,7 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: windows-latest
+    #runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -28,25 +29,25 @@ jobs:
       
       - name: Doing the things
         run: |
-          $root = Get-Location
+          #$root = Get-Location
 
-          $projDir = "App.Console"
-          $proj = "$projDir/App.Console.csproj"
-          $releaseDir = "$projDir/bin/Release/net5.0"
+          #$projDir = "App.Console"
+          #$proj = "$projDir/App.Console.csproj"
+          #$releaseDir = "$projDir/bin/Release/net5.0"
 
-          Set-Location $projDir
-          
-          dotnet build --configuration Release
+          Set-Location 'App.Console'
 
-          Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
-            
-          Set-Location $root
-                    
+          # install playwright
           dotnet tool install -g Microsoft.Playwright.CLI
           
-          playwright install webkit
+          # install browsers
+          playwright install
           
-          Set-Location $releaseDir
-          
-          .\App.Console.exe
+          # build
+          dotnet build --configuration Release
+
+          #Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
+           
+          # run
+          dotnet run -c Release
         shell: pwsh
