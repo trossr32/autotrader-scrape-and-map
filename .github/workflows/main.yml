@@ -26,13 +26,13 @@ jobs:
       #    dotnet-version: '6.0.x'
       #    include-prerelease: true
       
-      - name: Build and publish package
+      - name: Doing the things
         run: |
           $root = Get-Location
 
           $projDir = "App.Console"
           $proj = "$projDir/App.Console.csproj"
-          $releaseDir = "$projDir/bin/Release/net6.0"
+          $releaseDir = "$projDir/bin/Release/net5.0"
 
           Set-Location $projDir
           
