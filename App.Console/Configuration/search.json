@@ -1,6 +1,7 @@
 {
   "SearchSettings": {
     "Domain": "https://www.autotrader.co.uk",
-    "SearchUrl": "car-search?sort=relevance&postcode=ss12pe&radius=1500&make=JAGUAR&model=F-TYPE&include-delivery-option=on&price-to=45000&minimum-badge-engine-size=5.0"
+    "SearchUrl": "car-search?sort=relevance&postcode=ss12pe&radius=1500&make=JAGUAR&model=F-TYPE&include-delivery-option=on&price-to=45000&min-engine-power=500"
+    //"SearchUrl": "car-search?sort=relevance&postcode=ss12pe&radius=1500&make=JAGUAR&model=F-TYPE&include-delivery-option=on&price-to=45000&minimum-badge-engine-size=5.0"
   }
 }
