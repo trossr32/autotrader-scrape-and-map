@@ -39,13 +39,13 @@ jobs:
       - name: Doing the things
         run: |
           #run.ps1
-          #$root = Get-Location
+          $root = Get-Location
 
           #$projDir = "App.Console"
           #$proj = "$projDir/App.Console.csproj"
           #$releaseDir = "$projDir/bin/Release/net5.0"
 
-          #Set-Location 'App.Console'
+          Set-Location 'App.Console'
 
           # install playwright
           dotnet tool install -g Microsoft.Playwright.CLI
