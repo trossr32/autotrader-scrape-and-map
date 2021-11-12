@@ -51,15 +51,15 @@ jobs:
           dotnet tool install -g Microsoft.Playwright.CLI
           
           # install browsers
+          $env:PLAYWRIGHT_BROWSERS_PATH="$root\pw-browsers"
           playwright install
 
-
-          
+                   
           # build
-          #dotnet build --configuration Release
+          dotnet build --configuration Release
 
-          Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
+          #Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
            
           # run
-          #dotnet run -c Release
+          dotnet run -c Release
         shell: pwsh
