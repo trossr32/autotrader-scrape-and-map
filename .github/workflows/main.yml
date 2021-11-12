@@ -16,19 +16,9 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: windows-latest
-    #runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      #- name: x
-      #  run: |
-      #    apt-get update \
-      #    && apt-get install wget -y \
-      #    && wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb \
-      #    && dpkg -i packages-microsoft-prod.deb \
-      #    && apt-get update \
-      #    && apt-get install -y powershell
-
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
       #- uses: actions/setup-dotnet@v1
@@ -38,7 +28,6 @@ jobs:
       
       - name: Doing the things
         run: |
-          #run.ps1
           $root = Get-Location
           $browsers = Join-Path $root "pw-browsers"
           $projDir = Join-Path $root "App.Console"
@@ -46,8 +35,7 @@ jobs:
           [System.IO.Directory]::CreateDirectory($browsers)
 
           #$proj = "$projDir/App.Console.csproj"
-          #$releaseDir = "$projDir/bin/Release/net5.0"
-
+          
           Set-Location $projDir
 
           # install playwright
@@ -56,15 +44,15 @@ jobs:
           # install browsers
           $env:PLAYWRIGHT_BROWSERS_PATH="$browsers"
 
-          playwright install
+          playwright install firefox
 
-          Set-Location $browsers
+          #Set-Location $browsers
                    
           # build
-          #dotnet build --configuration Release
+          dotnet build -c Release
 
-          Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
+          #Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
            
           # run
-          #dotnet run -c Release
+          dotnet run -c Release
         shell: pwsh

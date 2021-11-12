@@ -1,6 +1,6 @@
 {
   "FileSettings": {
     "LogDirectory": "C:/temp/autotrader.map.runs/logs",
-    "RunsDirectory": ":/temp/autotrader.map.runs"
+    "RunsDirectory": "C:/temp/autotrader.map.runs"
   }
 }

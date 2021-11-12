@@ -19,9 +19,12 @@ namespace App.Console
 
         static Program()
         {
+            var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
             var builder = new ConfigurationBuilder()
                 .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "Configuration"))
                 .AddJsonFile("file.json", optional: false, reloadOnChange: false)
+                .AddJsonFile($"file.{environmentName}.json", optional: true, reloadOnChange: false)
                 .AddJsonFile("search.json", optional: false, reloadOnChange: false)
                 .AddEnvironmentVariables();
 

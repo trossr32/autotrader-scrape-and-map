@@ -1,8 +1,18 @@
 {
   "profiles": {
-    "NetCoreConsoleAppTemplate": {
+    "AutotraderScrapeAndMap (debug)": {
       "commandName": "Project",
-      "commandLineArgs": "test"
+      "commandLineArgs": "test",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "debug"
+      }
+    },
+    "AutotraderScrapeAndMap (release)": {
+      "commandName": "Project",
+      "commandLineArgs": "",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "release"
+      }
     }
   }
 }
