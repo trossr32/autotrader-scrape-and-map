@@ -40,26 +40,31 @@ jobs:
         run: |
           #run.ps1
           $root = Get-Location
+          $browsers = Join-Path $root "pw-browsers"
+          $projDir = Join-Path $root "App.Console"
 
-          #$projDir = "App.Console"
+          [System.IO.Directory]::CreateDirectory($browsers)
+
           #$proj = "$projDir/App.Console.csproj"
           #$releaseDir = "$projDir/bin/Release/net5.0"
 
-          Set-Location 'App.Console'
+          Set-Location $projDir
 
           # install playwright
           dotnet tool install -g Microsoft.Playwright.CLI
           
           # install browsers
-          $env:PLAYWRIGHT_BROWSERS_PATH="$root\pw-browsers"
+          $env:PLAYWRIGHT_BROWSERS_PATH="$browsers"
+
           playwright install
 
+          Set-Location $browsers
                    
           # build
-          dotnet build --configuration Release
+          #dotnet build --configuration Release
 
-          #Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
+          Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
            
           # run
-          dotnet run -c Release
+          #dotnet run -c Release
         shell: pwsh
