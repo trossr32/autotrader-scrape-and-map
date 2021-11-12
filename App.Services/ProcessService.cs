@@ -58,6 +58,10 @@ namespace App.Services
         {
             if (isTest)
                 _logger?.LogInformation("Testing!");
+
+            _logger?.LogWarning(_fileSettings.RunsDirectory);
+            Console.ReadLine();
+            return;
             
             SetupRun();
 
