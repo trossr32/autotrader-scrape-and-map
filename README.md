@@ -1,6 +1,6 @@
 # Autotrader scrape and map tool
 
-[https://trossr32.github.io/autotrader-scrape-and-map/](autotrader)
+[local website](https://trossr32.github.io/autotrader-scrape-and-map/)
 
 ## Description
 A basic, empty dotnet 5 console application, with:
