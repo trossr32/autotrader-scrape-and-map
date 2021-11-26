@@ -5,7 +5,8 @@ name: Publish package
 # Controls when the action will run. 
 # Triggers the workflow on push or pull request events
 on: 
-  push:
+  # runs on commit
+  # push:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -26,14 +27,16 @@ jobs:
       #    dotnet-version: '6.0.x'
       #    include-prerelease: true
       
-      - name: Doing the things
+      - name: Setting up
         run: |
           $root = Get-Location
           $browsers = Join-Path $root "pw-browsers"
           $projDir = Join-Path $root "App.Console"
 
           [System.IO.Directory]::CreateDirectory($browsers)
-
+      
+      - name: Doing the things
+        run: |
           #$proj = "$projDir/App.Console.csproj"
           
           Set-Location $projDir
@@ -54,5 +57,5 @@ jobs:
           #Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
            
           # run
-          dotnet run -c Release
+          # dotnet run -c Release
         shell: pwsh

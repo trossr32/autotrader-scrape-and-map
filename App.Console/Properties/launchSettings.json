@@ -1,15 +1,10 @@
 {
   "profiles": {
     "AutotraderScrapeAndMap (debug)": {
-      "commandName": "Project",
-      "commandLineArgs": "test",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "debug"
-      }
+      "commandName": "Project"
     },
     "AutotraderScrapeAndMap (release)": {
       "commandName": "Project",
-      "commandLineArgs": "",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "release"
       }

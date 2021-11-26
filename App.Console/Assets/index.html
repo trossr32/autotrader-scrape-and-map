@@ -1,15 +1,233 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Autotrader results</title>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
-    <link rel="stylesheet" type="text/css" href="./style.css" />
-    <script src="./index.js"></script>
-  </head>
-  <body>
-    <div id="map"></div>
+<!doctype html>
+<html lang="en" class="h-100">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>Autotrader scrape and map results</title>
 
-    <!-- Async script executes immediately and must be after any DOM elements used in callback. -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA309ySs0cYSmBZ2Lf9Cuqht3eO4Yd-5IA&callback=initMap&libraries=&v=weekly" async></script>
-  </body>
+    <!-- Bootstrap core CSS -->
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta2/css/all.min.css" 
+          integrity="sha512-YWzhKL2whUzgiheMoBFwW8CKV4qpHQAEuvilg9FAn5VJUDwKZZxkJNuGM4XkWuk94WCrrwslk8yWNGmY1EduTA==" 
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        .bd-placeholder-img {
+            font-size: 1.125rem;
+            text-anchor: middle;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+        }
+
+        @media (min-width: 768px) {
+            .bd-placeholder-img-lg {
+                font-size: 3.5rem;
+            }
+        }
+
+        /* Custom default button */
+        .btn-secondary,
+        .btn-secondary:hover,
+        .btn-secondary:focus {
+            color: #333;
+            text-shadow: none; /* Prevent inheritance from `body` */
+            background-color: greenyellow;
+            border-color: greenyellow;
+        }
+
+        .search-border {
+            border: 1px solid greenyellow;
+            -ms-border-radius: 7px;
+            border-radius: 7px;
+            width: 100%;
+        }
+
+        #search-results > div {
+            margin: 0 auto;
+        }
+
+        footer a {
+            color: greenyellow;
+        }
+
+        /* Base structure */
+        body {
+            text-shadow: 0 .05rem .1rem rgba(0, 0, 0, .5);
+            box-shadow: inset 0 0 5rem rgba(0, 0, 0, .5);
+        }
+
+        .cover-container {
+            max-width: 42em;
+        }
+
+        /* Header */
+        .nav-masthead .nav-link {
+            padding: .25rem 0;
+            font-weight: 700;
+            color: rgba(255, 255, 255, .5);
+            background-color: transparent;
+            border-bottom: .25rem solid transparent;
+        }
+
+            .nav-masthead .nav-link:hover,
+            .nav-masthead .nav-link:focus {
+                border-bottom-color: rgba(255, 255, 255, .25);
+            }
+
+            .nav-masthead .nav-link + .nav-link {
+                margin-left: 1rem;
+            }
+
+        .nav-masthead .active {
+            color: #fff;
+            border-bottom-color: #fff;
+        }
+
+        /* date display */
+        @import url(https://fonts.googleapis.com/css?family=Source+Code+Pro|Oswald);
+
+        /****************************************/
+        /* Styling rules, such as font and colors */
+        .date-as-calendar {
+            font-variant: normal;
+            font-style: normal;
+            font-weight: normal;
+            font-family: "Helvetica", "Arial", sans-serif;
+            vertical-align: top;
+            margin-top: 30px;
+            color: greenyellow;
+            border: 1px solid #888;
+            border-radius: 3px;
+            overflow: hidden;
+            box-shadow: 2px 2px 2px -2px black;
+        }
+
+            .date-as-calendar .weekday,
+            .date-as-calendar .day,
+            .date-as-calendar .month,
+            .date-as-calendar .year {
+                text-align: center;
+                line-height: 1.0;
+            }
+
+            .date-as-calendar .month {
+                font-family: "Oswald", sans-serif;
+                text-transform: uppercase;
+                background: greenyellow;
+                color: #222;
+            }
+
+        /****************************************/
+        /* Layout rules using position: absolute and pixels. */
+        .position-pixels.date-as-calendar {
+            display: inline-block;
+            position: relative;
+            width: 100px;
+            height: 80px;
+        }
+
+            .position-pixels.date-as-calendar .weekday,
+            .position-pixels.date-as-calendar .day,
+            .position-pixels.date-as-calendar .month,
+            .position-pixels.date-as-calendar .year {
+                display: block;
+                position: absolute;
+                left: 0;
+                right: 0;
+                width: 100%;
+                height: 1.4em;
+                padding: 1px 0;
+            }
+
+            .position-pixels.date-as-calendar .month {
+                top: 0;
+                font-size: 12px;
+                padding: 2px 0;
+            }
+
+            .position-pixels.date-as-calendar .weekday {
+                top: 22px;
+                font-size: 10px;
+            }
+
+            .position-pixels.date-as-calendar .day {
+                top: 34px;
+                font-size: 24px;
+            }
+
+            .position-pixels.date-as-calendar .year {
+                top: 60px;
+                font-size: 14px;
+            }
+    </style>
+</head>
+<body class="d-flex h-100 text-center text-white bg-dark">
+
+<div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+    <header class="mb-auto">
+        <div>
+            <h3 class="float-md-none mb-0">Autotrader scrape and map results</h3>
+            <time datetime="//RUN_DATETIME" class="date-as-calendar position-pixels">
+                <span class="weekday">//RUN_DAY</span>
+                <span class="day">//RUN_DATE</span>
+                <span class="month">//RUN_MONTH</span>
+                <span class="year">//RUN_YEAR</span>
+            </time>
+        </div>
+    </header>
+
+    <main class="px-3">
+        <div id="search-results" class="row">
+            <!--<div class="col-6 p-2">
+                <div class="search-border py-4">
+                    <h3 class="mb-5">F Type R</h3>
+                    <a href="#" target="_blank" class="btn btn-lg btn-secondary fw-bold">
+                        <i class="fa-solid fa-map-location-dot"></i> &nbsp; Map
+                    </a>
+                </div>
+            </div>
+            <div class="col-6 p-2">
+                <div class="search-border py-4">
+                    <h3 class="mb-5">F Type R</h3>
+                    <a href="#" target="_blank" class="btn btn-lg btn-secondary fw-bold">
+                        <i class="fa-solid fa-map-location-dot"></i> &nbsp; Map
+                    </a>
+                </div>
+            </div>-->
+        </div>
+    </main>
+
+    <footer class="mt-auto text-white-50">
+        <p>
+            <a href="https://github.com/trossr32/autotrader-scrape-and-map"><i class="fa-brands fa-github"></i></a>
+        </p>
+    </footer>
+</div>
+    
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    //const searches = [
+    //    {
+    //        id: '1',
+    //        description: 'F Type R'
+    //    }];
+
+    //SEARCHES_ARRAY_PLACEHOLDER
+
+    $(() => {
+        $.each(searches,
+            function (i, search) {
+                console.log(search);
+                $('#search-results')
+                    .append($('<div class="col-6 p-2"></div>')
+                        .append($('<div class="search-border py-4"></div>')
+                            .append($(`<h3 class="mb-5">${search.description}</h3>`))
+                            .append($(`<a href="${search.id}/index.html" target="_blank" class="btn btn-lg btn-secondary fw-bold"><i class="fa-solid fa-map-location-dot"></i> &nbsp; Map</a>`))));
+            });
+    });
+</script>
+    
+</body>
 </html>

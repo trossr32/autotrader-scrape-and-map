@@ -2,8 +2,10 @@
 using System.IO;
 using System.Threading.Tasks;
 using App.Core.Models.Configuration;
+using App.Core.Models.Options;
 using App.Core.Services.Configuration;
 using App.Services;
+using CommandLine;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -24,7 +26,7 @@ namespace App.Console
             var builder = new ConfigurationBuilder()
                 .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "Configuration"))
                 .AddJsonFile("file.json", optional: false, reloadOnChange: false)
-                .AddJsonFile($"file.{environmentName}.json", optional: true, reloadOnChange: false)
+                //.AddJsonFile($"file.{environmentName}.json", optional: true, reloadOnChange: false)
                 .AddJsonFile("search.json", optional: false, reloadOnChange: false)
                 .AddEnvironmentVariables();
 
@@ -70,27 +72,21 @@ namespace App.Console
         {
             _logger = ServiceProvider.GetService<ILogger<Program>>();
 
-            // await Parser.Default.ParseArguments<RunOptions, TestOptions>(args)
-            //     .MapResult(
-            //         async (RunOptions options) => await Run(options),
-            //         async (TestOptions options) => await RunTest(options),
-            //         err => Task.FromResult(-1)
-            //     );
-
-            await Run();
+            await Parser.Default.ParseArguments<RunOptions>(args)
+                .WithParsedAsync(RunAsync);
         }
 
         /// <summary>
         /// Run on 'run' verb, e.g. App.Console.exe run
         /// </summary>
         /// <returns></returns>
-        private static async Task Run()
+        private static async Task RunAsync(RunOptions options)
         {
             var processSvc = ServiceProvider.GetService<IProcessService>();
 
             try
             {
-                await processSvc.Process();
+                await processSvc.Process(options);
             }
             catch (Exception e)
             {
@@ -99,21 +95,5 @@ namespace App.Console
                 throw;
             }
         }
-
-        // private static async Task RunTest(TestOptions options)
-        // {
-        //     var processSvc = ServiceProvider.GetService<IProcessService>();
-        //
-        //     try
-        //     {
-        //         await processSvc.Process(true);
-        //     }
-        //     catch (Exception e)
-        //     {
-        //         _logger?.LogError(e, "Failed to run process");
-        //
-        //         throw;
-        //     }
-        // }
     }
 }

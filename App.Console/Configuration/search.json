@@ -1,7 +1,18 @@
 {
   "SearchSettings": {
     "Domain": "https://www.autotrader.co.uk",
-    "SearchUrl": "car-search?sort=relevance&postcode=ss12pe&radius=1500&make=JAGUAR&model=F-TYPE&include-delivery-option=on&price-to=45000&min-engine-power=500"
-    //"SearchUrl": "car-search?sort=relevance&postcode=ss12pe&radius=1500&make=JAGUAR&model=F-TYPE&include-delivery-option=on&price-to=45000&minimum-badge-engine-size=5.0"
+    "Searches": [
+      {
+        "Id": "a63869d6-f9b6-49a4-a48b-b572d763c650",
+        "Description": "Jaguar F Type R",
+        "Url": "car-search?sort=relevance&postcode=ss26er&radius=1500&make=JAGUAR&model=F-TYPE&include-delivery-option=on&price-to=45000&min-engine-power=500"
+      },
+      {
+        "Id": "e2980e58-bf61-458d-b349-bc25124de236",
+        "Description": "BMW M5",
+        "Url": "car-search?maximum-badge-engine-size=4.5&radius=1500&exclude-writeoff-categories=on&postcode=ss26er&maximum-mileage=45000&model=M5&search-target=At_cars&make=BMW&price-to=50000"
+      }
+    ]
+      //"SearchUrl": "car-search?sort=relevance&postcode=ss12pe&radius=1500&make=JAGUAR&model=F-TYPE&include-delivery-option=on&price-to=45000&minimum-badge-engine-size=5.0"
   }
 }
