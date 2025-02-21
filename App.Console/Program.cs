@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
-using App.Core.Models.Configuration;
+﻿using App.Core.Models.Configuration;
 using App.Core.Models.Options;
 using App.Core.Services.Configuration;
 using App.Services;
@@ -11,89 +8,88 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
 
-namespace App.Console
+namespace App.Console;
+
+class Program
 {
-    class Program
+    private static readonly IServiceProvider ServiceProvider;
+    private static readonly IConfigurationRoot Configuration;
+    private static ILogger<Program> _logger;
+
+    static Program()
     {
-        private static readonly IServiceProvider ServiceProvider;
-        private static readonly IConfigurationRoot Configuration;
-        private static ILogger<Program> _logger;
+        var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
-        static Program()
-        {
-            var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        var builder = new ConfigurationBuilder()
+            .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "Configuration"))
+            .AddJsonFile("file.json", optional: false, reloadOnChange: false)
+            //.AddJsonFile($"file.{environmentName}.json", optional: true, reloadOnChange: false)
+            .AddJsonFile("search.json", optional: false, reloadOnChange: false)
+            .AddEnvironmentVariables();
 
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "Configuration"))
-                .AddJsonFile("file.json", optional: false, reloadOnChange: false)
-                //.AddJsonFile($"file.{environmentName}.json", optional: true, reloadOnChange: false)
-                .AddJsonFile("search.json", optional: false, reloadOnChange: false)
-                .AddEnvironmentVariables();
+        Configuration = builder.Build();
 
-            Configuration = builder.Build();
+        var fileSettings = Configuration.GetSection(nameof(FileSettings)).Get<FileSettings>();
 
-            var fileSettings = Configuration.GetSection(nameof(FileSettings)).Get<FileSettings>();
+        Log.Logger = new LoggerConfiguration()
+            .WriteTo.File(Path.Combine(fileSettings.LogDirectory, $"{DateTime.Now:yyyyMMdd_HHmmss}.log"))   // log to file system
+            .WriteTo.Console()                                                                              // log to console
+            .CreateLogger();
 
-            Log.Logger = new LoggerConfiguration()
-                .WriteTo.File(Path.Combine(fileSettings.LogDirectory, $"{DateTime.Now:yyyyMMdd_HHmmss}.log"))   // log to file system
-                .WriteTo.Console()                                                                              // log to console
-                .CreateLogger();
+        var serviceCollection = new ServiceCollection();
+        ConfigureServices(serviceCollection);
 
-            var serviceCollection = new ServiceCollection();
-            ConfigureServices(serviceCollection);
+        ServiceProvider = serviceCollection.BuildServiceProvider();
+    }
 
-            ServiceProvider = serviceCollection.BuildServiceProvider();
-        }
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        services.AddOptions();
 
-        private static void ConfigureServices(IServiceCollection services)
-        {
-            services.AddOptions();
+        // logging
+        services.AddLogging(configure => configure.AddSerilog());
 
-            // logging
-            services.AddLogging(configure => configure.AddSerilog());
-
-            // configuration
-            services.Configure<FileSettings>(options => Configuration.GetSection(nameof(FileSettings)).Bind(options));
-            services.AddSingleton<IFileSettingsService, FileSettingsService>();
+        // configuration
+        services.Configure<FileSettings>(options => Configuration.GetSection(nameof(FileSettings)).Bind(options));
+        services.AddSingleton<IFileSettingsService, FileSettingsService>();
             
-            services.Configure<SearchSettings>(options => Configuration.GetSection(nameof(SearchSettings)).Bind(options));
-            services.AddSingleton<ISearchSettingsService, SearchSettingsService>();
+        services.Configure<SearchSettings>(options => Configuration.GetSection(nameof(SearchSettings)).Bind(options));
+        services.AddSingleton<ISearchSettingsService, SearchSettingsService>();
 
-            // services
-            services.AddSingleton<IProcessService, ProcessService>();
-        }
+        // services
+        services.AddSingleton<IProcessService, ProcessService>();
+    }
 
-        /// <summary>
-        /// App entry point. Use CommandLineParser to configure any command line arguments.
-        /// </summary>
-        /// <param name="args"></param>
-        /// <returns></returns>
-        static async Task Main(string[] args)
+    /// <summary>
+    /// App entry point. Use CommandLineParser to configure any command line arguments.
+    /// </summary>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    private static async Task Main(string[] args)
+    {
+        _logger = ServiceProvider.GetService<ILogger<Program>>()!;
+
+        await Parser.Default.ParseArguments<RunOptions>(args)
+            .WithParsedAsync(RunAsync);
+    }
+
+    /// <summary>
+    /// Run on 'run' verb, e.g. App.Console.exe run
+    /// </summary>
+    /// <returns></returns>
+    private static async Task RunAsync(RunOptions options)
+    {
+        var processSvc = ServiceProvider.GetService<IProcessService>()!;
+
+        try
         {
-            _logger = ServiceProvider.GetService<ILogger<Program>>();
-
-            await Parser.Default.ParseArguments<RunOptions>(args)
-                .WithParsedAsync(RunAsync);
+            await processSvc.Process(options);
         }
-
-        /// <summary>
-        /// Run on 'run' verb, e.g. App.Console.exe run
-        /// </summary>
-        /// <returns></returns>
-        private static async Task RunAsync(RunOptions options)
+        catch (Exception e)
         {
-            var processSvc = ServiceProvider.GetService<IProcessService>();
+            _logger?.LogError(e, "Failed to run process");
 
-            try
-            {
-                await processSvc.Process(options);
-            }
-            catch (Exception e)
-            {
-                _logger?.LogError(e, "Failed to run process");
-
-                throw;
-            }
+            throw;
         }
     }
 }
