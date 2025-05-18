@@ -5,45 +5,48 @@ on:
   
   workflow_dispatch:
 
+env:
+  DOTNET_VERSION: '8.*.*'
+
 jobs:
   build:
     runs-on: windows-latest
-    
+
     steps:
-      - uses: actions/checkout@v4
-      #- uses: actions/setup-dotnet@v1
-      #  with:
-      #    dotnet-version: '6.0.x'
-      #    include-prerelease: true
-      
-      - name: Run
-        run: |
-          $root = Get-Location
-          $browsers = Join-Path $root "pw-browsers"
-          $projDir = Join-Path $root "App.Console"
+    - uses: actions/checkout@v4
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
 
-          [System.IO.Directory]::CreateDirectory($browsers)
-      
-          #$proj = "$projDir/App.Console.csproj"
-          
-          Set-Location $projDir
+    - name: Run
+      run: |
+        $root = Get-Location
+        $browsers = Join-Path $root "pw-browsers"
+        $projDir = Join-Path $root "App.Console"
 
-          # install playwright
-          dotnet tool install -g Microsoft.Playwright.CLI
-          
-          # install browsers
-          $env:PLAYWRIGHT_BROWSERS_PATH="$browsers"
+        [System.IO.Directory]::CreateDirectory($browsers)
 
-          playwright install firefox
+        #$proj = "$projDir/App.Console.csproj"
 
-          #Set-Location $browsers
-                   
-          # build
-          dotnet build -c Release
+        Set-Location $projDir
 
-          Set-Location $root
-          Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
-           
-          # run
-          # dotnet run -c Release
+        # install playwright
+        dotnet tool install -g Microsoft.Playwright.CLI
+
+        # install browsers
+        $env:PLAYWRIGHT_BROWSERS_PATH="$browsers"
+
+        playwright install firefox
+
+        #Set-Location $browsers
+
+        # build
+        dotnet build -c Release
+
+        Set-Location $root
+        Get-ChildItem -recurse | ForEach-Object {Write-Host $_}
+
+        # run
+        # dotnet run -c Release
         shell: pwsh
